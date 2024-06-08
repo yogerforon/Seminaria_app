@@ -1,0 +1,297 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Customer {
+  id                  Int                  @id @default(autoincrement())
+  email               String               @unique
+  emailVerified       Boolean              @default(false) //Флаг подтверждения адреса электронной почты
+  password            String
+  firstName           String?
+  lastName            String?
+  sex                 String?
+  dateOfBirth         DateTime?
+  profilePicture      String?
+  phone               String?
+  phoneVerified       Boolean              @default(false)
+  addressId           Int?
+  address             Address?             @relation(fields: [addressId], references: [id])
+  cart                Cart[]
+  sessions            Session[]
+  orders              Order[]
+  defaultLanguage     String?
+  resetPasswordTokens ResetPasswordToken[]
+  role                Role                 @default(GUEST)
+  shipments           Shipment[]
+  isSubscribed        Boolean              @default(false)
+  isActive            Boolean              @default(true)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @default(now()) @updatedAt
+  discount            Float?
+}
+
+enum Role {
+  GUEST
+  USER
+  ADMIN
+}
+
+model Address {
+  id         Int        @id @default(autoincrement())
+  customers  Customer[]
+  address    String
+  city       String
+  country    String
+  state      String
+  postalCode String
+}
+
+//Model for storing login sessions
+model Session {
+  id          Int       @id @default(autoincrement())
+  customerId  Int
+  customer    Customer  @relation(fields: [customerId], references: [id])
+  ipAddress   String?
+  userAgent   String?
+  loginTime   DateTime
+  logoutTime  DateTime?
+  duration    Int? //Session duration in minutes
+  isActive    Boolean   @default(true) //If the session is active
+  sessionType String? //Regular or administrative or guest session
+  expiresAt   DateTime? //User session expiration
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+  token       String // поле для хранения PASETO токена
+
+  @@index([customerId])
+}
+
+//A unique token is generated and stored in this field to store tokens that can be used during a password reset request. The next time a password reset request is made, the system can verify that the token provided matches the token stored for that user, ensuring the security of the password reset process.
+model ResetPasswordToken {
+  id         Int      @id @default(autoincrement())
+  token      String   @unique
+  customerId Int
+  customer   Customer @relation(fields: [customerId], references: [id])
+  isValid    Boolean  @default(true)
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
+}
+
+model Order {
+  id          Int         @id @default(autoincrement())
+  orderDate   DateTime    @default(now())
+  customerId  Int
+  customer    Customer    @relation(fields: [customerId], references: [id])
+  orderItems  OrderItem[]
+  totalAmount Float
+  status      OrderStatus
+  promoCodeId Int?
+  promoCode   PromoCode?  @relation(fields: [promoCodeId], references: [id])
+  payment     Payment[]
+  shipmentId  Int
+  shipment    Shipment[]  @relation("OrderShipments")
+}
+
+model PromoCode {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique
+  discount  Float
+  validFrom DateTime
+  validTo   DateTime
+  isActive  Boolean  @default(true)
+  Order     Order[]
+}
+
+enum OrderStatus {
+  PROCESSING
+  ONHOLD
+  OUTFORDELIVERY
+  RETURNED
+  PENDING
+  SHIPPED
+  DELIVERED
+  CANCELED
+}
+
+model OrderItem {
+  id           Int      @id @default(autoincrement())
+  orderId      Int
+  order        Order    @relation(fields: [orderId], references: [id])
+  productId    Int
+  product      Product  @relation(fields: [productId], references: [id])
+  quantity     Int
+  price        Float
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
+  specialNotes String?
+}
+
+model Cart {
+  id              Int        @id @default(autoincrement())
+  name            String
+  quantity        Int
+  customerId      Int
+  customer        Customer   @relation(fields: [customerId], references: [id])
+  totalAmount     Float
+  deliveryAddress String
+  cartItems       CartItem[] //tracking of goods linked to a specific shopping cart
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @default(now()) @updatedAt
+}
+
+model CartItem {
+  id          Int      @id @default(autoincrement())
+  cartId      Int
+  cart        Cart     @relation(fields: [cartId], references: [id])
+  productId   Int
+  product     Product  @relation(fields: [productId], references: [id])
+  quantity    Int
+  totalAmount Float
+  discount    Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+}
+
+model Product {
+  id           Int                  @id @default(autoincrement())
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  name         String
+  sku          String
+  description  String?
+  brand        String
+  stockQuality Int
+  price        Float?
+  publish      Boolean              @default(true)
+  images       Image[]
+  categories   ProductCategory[]
+  reviews      Review[]
+  translations ProductTranslation[]
+  orderItems   OrderItem[]
+  cartItems    CartItem[]
+  rating       Float?
+  tags         String[]
+  videoUrl     String?
+  isFeatured   Boolean
+  totalSales   Int
+}
+
+model ProductTranslation {
+  id          Int          @id @default(autoincrement())
+  languageId  Int
+  language    Localization @relation(fields: [languageId], references: [id])
+  name        String
+  description String
+  productId   Int
+  product     Product      @relation(fields: [productId], references: [id])
+}
+
+model Image {
+  id        Int     @id @default(autoincrement())
+  url       String
+  alt       String
+  productId Int
+  product   Product @relation(fields: [productId], references: [id])
+}
+
+model ProductCategory {
+  id           Int                   @id @default(autoincrement())
+  name         String
+  products     Product[]
+  description  String?
+  translations CategoryTranslation[]
+  image        String?
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+}
+
+model CategoryTranslation {
+  id         Int             @id @default(autoincrement())
+  languageId Int
+  language   Localization    @relation(fields: [languageId], references: [id])
+  name       String
+  categoryId Int
+  category   ProductCategory @relation(fields: [categoryId], references: [id])
+}
+
+model Localization {
+  id                   Int                   @id @default(autoincrement())
+  code                 String                @unique
+  name                 String
+  productTranslations  ProductTranslation[]
+  categoryTranslations CategoryTranslation[]
+  reviewTranslations   ReviewTranslation[]
+}
+
+model Review {
+  id           Int                 @id @default(autoincrement())
+  rating       Int
+  comment      String
+  product      Product             @relation(fields: [productId], references: [id])
+  productId    Int
+  translations ReviewTranslation[]
+}
+
+model ReviewTranslation {
+  id         Int          @id @default(autoincrement())
+  language   Localization @relation(fields: [languageId], references: [id])
+  languageId Int
+  comment    String
+  review     Review       @relation(fields: [reviewId], references: [id])
+  reviewId   Int
+}
+
+model Shipment {
+  id             Int            @id @default(autoincrement())
+  status         ShipmentStatus
+  externalId     Int
+  customer       Customer       @relation(fields: [customerId], references: [id])
+  customerId     Int
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @default(now()) @updatedAt
+  trackingNumber String
+  orderId        Int
+  order          Order          @relation(fields: [orderId], references: [id], name: "OrderShipments")
+}
+
+enum ShipmentStatus {
+  PENDING //Отгрузка ожидает обработки.
+  PROCESSING // Отгрузка находится в процессе обработки.
+  SHIPPED //была отправлена.
+  IN_TRANSIT //Отгрузка в пути.
+  OUT_FOR_DELIVERY //Отгрузка в процессе доставки к конечному получателю.
+  DELIVERED //Отгрузка была доставлена.
+  CANCELED //Отгрузка была отменена.
+  RETURNED //Отгрузка была возвращена отправителю.
+}
+
+model Payment {
+  id         Int           @id @default(autoincrement())
+  sum        Float
+  currency   String
+  externalId String
+  status     PaymentStatus
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @default(now()) @updatedAt
+  orderId    Int
+  order      Order         @relation(fields: [orderId], references: [id])
+  method     PaymentMethod
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum PaymentMethod {
+  CREDIT_CARD
+  PAYPAL
+  BANK_TRANSFER
+}

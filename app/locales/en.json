@@ -1,0 +1,19 @@
+{
+    "adminDashboard": {
+      "title": "Admin Dashboard"
+    },
+    "admin": {
+      "login": {
+        "error": "Неправильный email или пароль.",
+        "error2": "Произошла ошибка при попытке входа:",
+        "error3": "Что-то пошло не так. Попробуйте еще раз позже.",
+        "title": "Вход для администратора",
+        "passwordLabel": "Пароль:",
+        "submitButton": "Войти"
+      },
+      "dashboard": {
+        "title": "Административная панель",
+        "logoutButton": "Выйти"
+      }
+    }
+  }

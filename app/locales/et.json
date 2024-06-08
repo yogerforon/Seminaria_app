@@ -1,0 +1,19 @@
+{
+    "adminDashboard": {
+      "title": "Administraatori juhtpaneel"
+    },
+    "admin": {
+      "login": {
+        "error": "Vale e-posti aadress või salasõna.",
+        "error2": "Sisselogimisel tekkis viga:",
+        "error3": "Midagi läks valesti. Proovige hiljem uuesti.",
+        "title": "Administraatori sisselogimine",
+        "passwordLabel": "Salasõna:",
+        "submitButton": "Logi sisse"
+      },
+      "dashboard": {
+        "title": "Административная панель",
+        "logoutButton": "Выйти"
+      }
+    }
+  }
